@@ -1,0 +1,59 @@
+public class AccountProcessor {
+    
+    @future
+    public static void countContacts(List<Id> accountId_lst) {
+        
+        Map<Id,Integer> account_cno = new Map<Id,Integer>(); 
+        List<account> account_lst_all = new List<account>([select id, (select id from contacts) from account]);
+        for(account a:account_lst_all) {
+            account_cno.put(a.id,a.contacts.size()); //populate the map
+            
+        }
+            		
+        List<account> account_lst = new List<account>(); // list of account that we will upsert
+        	
+        for(Id accountId : accountId_lst) {
+            if(account_cno.containsKey(accountId)) {
+                account acc = new account();
+                acc.Id = accountId;
+                acc.Number_of_Contacts__c = account_cno.get(accountId);
+                account_lst.add(acc);
+            }
+            
+        }
+        upsert account_lst;
+    }
+
+}
+
+
+
+@isTest
+public class AccountProcessorTest {
+    
+    @isTest
+    public static void testFunc() {
+        account acc = new account();
+        acc.name = 'MATW INC';
+        insert acc;
+        
+        contact con = new contact();
+        con.lastname = 'Mann1';
+        con.AccountId = acc.Id;
+        insert con;
+        contact con1 = new contact();
+        con1.lastname = 'Mann2';
+        con1.AccountId = acc.Id;
+        insert con1;
+        
+        
+        List<Id> acc_list = new List<Id>();
+        acc_list.add(acc.Id);
+        Test.startTest();
+        	AccountProcessor.countContacts(acc_list);
+        Test.stopTest();
+        List<account> acc1 = new List<account>([select Number_of_Contacts__c from account where id = :acc.id]);
+        system.assertEquals(2,acc1[0].Number_of_Contacts__c);
+    }
+
+}
